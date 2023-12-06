@@ -1,0 +1,53 @@
+version: "3"
+
+name: foodtruck
+
+volumes:
+  postgres_data:
+    driver: local
+
+services:
+  app:
+    container_name: foodtruck-app
+    command: ["node", "server.js"]
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3003
+      POSTGRES_URL: 'postgresql://postgres:postgres@postgres:5432/postgres'
+      EMBEDEFY_ACCESS_TOKEN: ${EMBEDEFY_ACCESS_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+    ports:
+      - "3003:3003"
+    build:
+      context: .
+      dockerfile: ./Dockerfile.app
+    depends_on:
+      - init
+      - postgres
+
+  init:
+    container_name: foodtruck-init
+    command: ["node", "import.js"]
+    environment:
+      POSTGRES_URL: 'postgresql://postgres:postgres@postgres:5432/postgres'
+      EMBEDEFY_ACCESS_TOKEN: ${EMBEDEFY_ACCESS_TOKEN}
+    restart: no
+    build:
+      context: .
+      dockerfile: ./Dockerfile.app
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: foodtruck-postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "54321:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    build:
+      context: .
+      dockerfile: ./Dockerfile.postgres

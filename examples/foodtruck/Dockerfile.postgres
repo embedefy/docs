@@ -1,0 +1,27 @@
+FROM postgres:15
+
+ARG PG_MAJOR=15
+ARG PG_VECTOR_VER=v0.5.1
+ARG PG_VECTOR_REPO=https://github.com/pgvector/pgvector.git
+
+RUN \
+    apt-get update && \
+		apt-get install -y --no-install-recommends git build-essential ca-certificates postgresql-server-dev-$PG_MAJOR
+
+WORKDIR /tmp
+RUN git clone $PG_VECTOR_REPO --single-branch --branch $(git ls-remote --tags --refs $PG_VECTOR_REPO | tail -n1 | cut -d/ -f3)
+WORKDIR /tmp/pgvector
+RUN \
+		make clean && \
+		make OPTFLAGS="" && \
+		make install && \
+		mkdir /usr/share/doc/pgvector && \
+		cp LICENSE README.md /usr/share/doc/pgvector && \
+		rm -r /tmp/pgvector && \
+		apt-get remove -y git build-essential postgresql-server-dev-$PG_MAJOR && \
+		apt-get autoremove -y && \
+		rm -rf /var/lib/apt/lists/*
+
+EXPOSE 5432
+ENV POSTGRES_PASSWORD postgres
+ENV PGDATA /var/lib/postgresql/data/pgdata
